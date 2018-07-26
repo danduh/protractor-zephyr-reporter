@@ -1,10 +1,11 @@
 const popsicle = require('popsicle');
 const auth = require('popsicle-basic-auth');
 const fs = require('fs');
-const jwt = require('jsonwebtoken');
+const jwt = require('atlassian-jwt');
+const sha256 = require('js-sha256');
 
 const jwtAuth = (payload, secret) => {
-    let authorization = 'JWT ' + jwt.sign(payload, secret);
+    let authorization = 'JWT ' + jwt.encode(payload, secret, null);
 
     return function (req, next) {
         req.set('Authorization', authorization);
@@ -16,14 +17,15 @@ const jwtAuth = (payload, secret) => {
 
 const getDate = () => {
     const date = new Date();
+    return date.getTime()
 
-    let response = (date.getDate());
-    response += '/';
-    response += date.toLocaleString('en-us', {month: 'short'});
-    response += '/';
-    response += date.getFullYear().toString().substring(2, 4);
-
-    return response;
+    // let response = (date.getDate());
+    // response += '/';
+    // response += date.toLocaleString('en-us', {month: 'short'});
+    // response += '/';
+    // response += date.getFullYear().toString().substring(2, 4);
+    //
+    // return response;
 };
 
 
@@ -42,7 +44,12 @@ const ZephyrService = (options) => {
     this.createCycle = (name, callback, errorCallback) => {
         const hash = sha256.create();
         hash.update(options.zapiUrl + '/cycle');
-        JWTPayload.qsh = hash.hex();
+        let _t = {
+            method: 'POST',
+            originalUrl: '/cycle'
+        };
+        JWTPayload.qsh = jwt.createQueryStringHash(_t, false, options.zapiUrl);
+        JWTPayload.qsh = 'dc8e37069edfb14c506ee47e1c4480b52d1058e44e284a2079a305736d249a0b';
         console.log(JWTPayload.qsh);
 
         let promises = [];
@@ -59,7 +66,8 @@ const ZephyrService = (options) => {
                     sprintId: response[0] || '-1'
                 },
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'zapiAccessKey': options.zapiAccessKey
                 }
             })
                 .use([
@@ -70,7 +78,10 @@ const ZephyrService = (options) => {
                     callback(res.body.id);
                 })
                 .catch((error) => {
-                    errorCallback(error);
+                    console.log(error.type) //=> "EINVALIDSTATUS"
+                    console.log(error.message) //=> "Invalid HTTP status, 404, should be between 200 and 399"
+                    console.log(error.status) //=> 404
+                    console.log(error.popsicle) //=> Popsicl
                 });
         };
 
