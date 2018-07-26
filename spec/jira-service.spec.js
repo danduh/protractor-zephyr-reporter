@@ -11,7 +11,9 @@ describe(`JiraService`, () => {
             boardId: '8921',
             version: '1',
             jiraUser: 'jiraUser',
-            jiraPassword: 'jiraPassword'
+            jiraPassword: 'jiraPassword',
+            zapiSecretKey: 'jiraPassword',
+            zapiAccessKey: 'jiraPassword'
         }
     });
 
@@ -61,7 +63,7 @@ describe(`JiraService`, () => {
                 })
                 .get('/board/8921/sprint?state=active')
                 .reply(() => {
-                    return { values: [] }
+                    return {values: []}
                 });
 
             const jiraService = JiraService(options);
@@ -123,8 +125,8 @@ describe(`JiraService`, () => {
                 .reply(() => {
                     return {
                         values: [
-                            { name: '1', id: '5235' },
-                            { name: 'mock', id: '362632' }
+                            {name: '1', id: '5235'},
+                            {name: 'mock', id: '362632'}
                         ]
                     }
                 });
@@ -157,8 +159,8 @@ describe(`JiraService`, () => {
                 .reply(() => {
                     return {
                         values: [
-                            { name: '12', id: '5235' },
-                            { name: 'mock', id: '362632' }
+                            {name: '12', id: '5235'},
+                            {name: 'mock', id: '362632'}
                         ]
                     }
                 });

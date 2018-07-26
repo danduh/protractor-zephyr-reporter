@@ -1,7 +1,18 @@
 const popsicle = require('popsicle');
 const auth = require('popsicle-basic-auth');
 const fs = require('fs');
+const jwt = require('jsonwebtoken');
 
+const jwtAuth = (payload, secret) => {
+    let authorization = 'JWT ' + jwt.sign(payload, secret);
+
+    return function (req, next) {
+        req.set('Authorization', authorization);
+
+        return next()
+    }
+
+};
 
 const getDate = () => {
     const date = new Date();
@@ -20,7 +31,19 @@ const ZephyrService = (options) => {
 
     const JiraService = require('./jira-service')(options);
 
+    const JWTPayload = {
+        qsh: '',
+        sub: options.jiraUser,
+        iss: options.zapiAccessKey,
+        iat: 1532592578,
+        exp: 1532996178
+    };
+
     this.createCycle = (name, callback, errorCallback) => {
+        const hash = sha256.create();
+        hash.update(options.zapiUrl + '/cycle');
+        JWTPayload.qsh = hash.hex();
+        console.log(JWTPayload.qsh);
 
         let promises = [];
         const _createCycle = (response) => {
@@ -41,7 +64,7 @@ const ZephyrService = (options) => {
             })
                 .use([
                     popsicle.plugins.parse('json'),
-                    auth(options.jiraUser, options.jiraPassword)
+                    jwtAuth(JWTPayload, options.zapiSecretKey)
                 ])
                 .then((res) => {
                     callback(res.body.id);
@@ -90,7 +113,7 @@ const ZephyrService = (options) => {
         })
             .use([
                 popsicle.plugins.parse('json'),
-                auth(options.jiraUser, options.jiraPassword)
+                jwtAuth(JWTPayload, options.zapiSecretKey)
             ])
             .then((res) => {
                 callback(Object.keys(res.body)[0]);
@@ -112,7 +135,7 @@ const ZephyrService = (options) => {
         })
             .use([
                 popsicle.plugins.parse('json'),
-                auth(options.jiraUser, options.jiraPassword)
+                jwtAuth(JWTPayload, options.zapiSecretKey)
             ])
             .then(({body = []}) => {
                 const index = body.findIndex((step) => String(step.stepId) === stepId);
@@ -142,7 +165,7 @@ const ZephyrService = (options) => {
         })
             .use([
                 popsicle.plugins.parse('json'),
-                auth(options.jiraUser, options.jiraPassword)
+                jwtAuth(JWTPayload, options.zapiSecretKey)
             ])
             .then(() => {
                 callback();
@@ -165,7 +188,7 @@ const ZephyrService = (options) => {
         })
             .use([
                 popsicle.plugins.parse('json'),
-                auth(options.jiraUser, options.jiraPassword)
+                jwtAuth(JWTPayload, options.zapiSecretKey)
             ])
             .then(() => {
                 callback();
@@ -192,7 +215,7 @@ const ZephyrService = (options) => {
                 'Accept': 'application/json'
             }
         })
-            .use(auth(options.jiraUser, options.jiraPassword))
+            .use(jwtAuth(JWTPayload, options.zapiSecretKey))
             .then(() => {
                 callback();
             })
@@ -217,7 +240,7 @@ const ZephyrService = (options) => {
                 'Accept': 'application/json'
             }
         })
-            .use(auth(options.jiraUser, options.jiraPassword))
+            .use(jwtAuth(JWTPayload, options.zapiSecretKey))
             .then(() => {
                 callback();
             })
